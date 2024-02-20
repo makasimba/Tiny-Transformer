@@ -8,7 +8,6 @@ import os
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-
 DIR = 'Models'
 
 def w_and_b(sh_of_w):
@@ -35,7 +34,7 @@ encode = lambda seq: [encoder[ch] for ch in seq]
 decode = lambda nums: [decoder[num] for num in nums]
 
 def prepare(data, encode):    
-    d = torch.tensor(encode(data), dtype=torch.long)
+    d = torch.tensor(encode(data), dtype=torch.long).to(device)
     m = len(d)
     print(f'Number of T = {m:,}\n\n')
     train = d[: int(0.9*m)]
@@ -45,9 +44,8 @@ def prepare(data, encode):
 def load_batch(data, batches=125, batch_size=8, block_size=8):
     for _ in range(0, batches):
         random_values = torch.randint(low=0, high=len(data)-block_size, size=(batch_size,))
-        X = torch.stack([data[x:x+block_size] for x in random_values])
-        Y = torch.stack([data[x+1:x+1+block_size] for x in random_values])
-        X, Y = X.to(device), Y.to(device)
+        X = torch.stack([data[x:x+block_size] for x in random_values]).to(device)
+        Y = torch.stack([data[x+1:x+1+block_size] for x in random_values]).to(device)
         yield X, Y
 
 @torch.no_grad()
@@ -111,11 +109,10 @@ def run(conf):
     TRAIN, EVAL = prepare(data, encode)
     batches = int((len(TRAIN) * 0.9) / 8)
 
-    model = GPTModel(conf)
+    model = GPTModel(conf).to(device)
     optimizer = torch.optim.AdamW(params=model.parameters(), lr=1e-4, weight_decay=0)
     print(f'Number of P={model.number_of_parameters():,}')
     model, optimizer = from_pretrained(model, optimizer, 'Models/model--21000.pt')
-    model.to(device)
 
     L = []
     epochs = 1
