@@ -6,6 +6,9 @@ from tqdm import tqdm
 import random
 import os
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+
 DIR = 'Models'
 
 def w_and_b(sh_of_w):
@@ -44,6 +47,7 @@ def load_batch(data, batches=125, batch_size=8, block_size=8):
         random_values = torch.randint(low=0, high=len(data)-block_size, size=(batch_size,))
         X = torch.stack([data[x:x+block_size] for x in random_values])
         Y = torch.stack([data[x+1:x+1+block_size] for x in random_values])
+        X, Y = X.to(device), Y.to(device)
         yield X, Y
 
 @torch.no_grad()
@@ -111,9 +115,9 @@ def run(conf):
     optimizer = torch.optim.AdamW(params=model.parameters(), lr=1e-4, weight_decay=0)
     print(f'Number of P={model.number_of_parameters():,}')
     model, optimizer = from_pretrained(model, optimizer, 'Models/model--21000.pt')
+    model.to(device)
 
     L = []
-
     epochs = 1
     for e in range(epochs):
 
